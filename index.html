@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLC Assistant Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&family=JetBrains+Mono&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .chat-area {
+            height: calc(100vh - 180px);
+        }
+
+        .bot-msg {
+            background: white;
+            border-radius: 1rem 1rem 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .user-msg {
+            background: #2563eb;
+            color: white;
+            border-radius: 1rem 1rem 0 1rem;
+        }
+
+        .ladder-box {
+            background: #1e293b;
+            color: #38bdf8;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2">
+            <div class="bg-blue-600 p-2 rounded-lg text-white">
+                <i class="fas fa-microchip text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-gray-800 leading-none">PLC Assistant</h1>
+                <span class="text-[10px] text-green-500 font-semibold uppercase tracking-wider">Online Mode</span>
+            </div>
+        </div>
+        <button onclick="clearChat()" class="text-gray-400 hover:text-red-500 transition-all">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    </nav>
+
+    <!-- Chat Content -->
+    <main id="chatDisplay" class="chat-area overflow-y-auto p-4 space-y-4 flex-grow">
+        <!-- Initial Message -->
+        <div class="flex justify-start">
+            <div class="bot-msg p-4 max-w-[90%] md:max-w-[70%] text-gray-700">
+                สวัสดีครับอาจารย์! ผมคือบอท PLC (โหมดออฟไลน์) 
+                <br><br>
+                ตอนนี้ระบบ AI หลักไม่พร้อมใช้งาน แต่ผมมีความรู้พื้นฐานฝังอยู่ในตัวครับ ลองถามเรื่อง:
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="sendQuick('LD')" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-all">LD/LDI</button>
+                    <button onclick="sendQuick('Timer')" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-all">Timer</button>
+                    <button onclick="sendQuick('Counter')" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-all">Counter</button>
+                    <button onclick="sendQuick('MOV')" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 hover:bg-blue-100 transition-all">MOV</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="p-4 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <form id="chatForm" class="flex gap-2 max-w-4xl mx-auto">
+            <input 
+                type="text" 
+                id="msgInput" 
+                placeholder="พิมพ์คำสั่ง PLC ที่ต้องการทราบ (เช่น LD, SET, RST)..." 
+                class="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
+            >
+            <button type="submit" class="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-90 transition-all">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </footer>
+
+    <script>
+        const chatDisplay = document.getElementById('chatDisplay');
+        const chatForm = document.getElementById('chatForm');
+        const msgInput = document.getElementById('msgInput');
+
+        // ข้อมูลความรู้จากรูปภาพของคุณ
+        const knowledgeBase = [
+            {
+                keywords: ['ld', 'load', 'หน้าสัมผัสปกติเปิด', 'no contact'],
+                response: `📌 <b>คำสั่ง LD (Load)</b> คือคำสั่งเริ่มต้นของวงจร หรือหน้าสัมผัสปกติเปิด (Normally Open - NO) เปรียบเสมือนสวิตช์ที่ยังไม่ถูกกด กระแสไฟจะไม่ไหลผ่านจนกว่าจะมีสัญญาณมาสั่งงาน
+                <div class="ladder-box">|---[ ]---|</div>
+                <b>การใช้งาน:</b> ใช้เริ่มรุ่งใหม่ หรือต่ออนุกรมกับหน้าสัมผัสอื่น ๆ`
+            },
+            {
+                keywords: ['ldi', 'ld not', 'หน้าสัมผัสปกติปิด', 'nc'],
+                response: `📌 <b>คำสั่ง LDI / LD NOT (Load Inverse)</b> คือหน้าสัมผัสปกติปิด (Normally Closed - NC) กระแสไฟจะไหลผ่านได้ตลอดเวลา จนกว่าจะมีสัญญาณมาสั่งให้หยุด (ตัดวงจร)
+                <div class="ladder-box">|---[/]---|</div>
+                <b>การใช้งาน:</b> ใช้เป็นปุ่ม Stop หรือ Interlock เพื่อป้องกันการทำงานพร้อมกัน`
+            },
+            {
+                keywords: ['out', 'coil', 'output', 'คอยล์'],
+                response: `📌 <b>คำสั่ง OUT (Output Coil)</b> ใช้สำหรับขับอุปกรณ์เอาต์พุต (เช่น Y, Q) หรือรีเลย์ภายใน (M) ให้ทำงาน เมื่อเงื่อนไขด้านหน้าเป็นจริง Coil จะทำงาน (ON)
+                <div class="ladder-box">|---( )---|</div>
+                <b>หมายเหตุ:</b> หากเงื่อนไขด้านหน้าหยุดทำงาน Coil ก็จะหยุดทำงานทันที (ไม่จำสถานะ)`
+            },
+            {
+                keywords: ['set', 'rst', 'reset', 'จำสถานะ'],
+                response: `📌 <b>คำสั่ง SET และ RST (Reset)</b> เป็นคำสั่งที่ใช้ควบคุมสถานะแบบค้าง (Latch)
+                <br>🔹 <b>SET:</b> เมื่อทำงานแล้ว สถานะจะ ON ค้างตลอดไป แม้สัญญาณ Input จะหายไป
+                <br>🔹 <b>RST:</b> ใช้สำหรับสั่งให้บิตที่เคย ON อยู่ กลับมาเป็น OFF
+                <div class="ladder-box">X0 Y0  |--[ ]--(SET)--| <-- กด X0 แล้ว Y0 ติดค้าง<br>X1 Y0  |--[ ]--(RST)--| <-- กด X1 เพื่อสั่งดับ Y0</div>`
+            },
+            {
+                keywords: ['timer', 'ton', 't0', 'เวลา'],
+                response: `📌 <b>คำสั่ง Timer (ตัวตั้งเวลา)</b> ส่วนใหญ่ใช้ <b>TON (Timer On Delay)</b> คือจับเวลาเมื่อเงื่อนไขเป็นจริง
+                <br>🚩 <b>Mitsubishi (FX/Q Series):</b> <div class="ladder-box">|--[ X0 ]-------( T0 K50 )--|</div> (*เมื่อ X0 ติดครบ 5 วินาที, Contact T0 จะทำงาน) *K50 = 5.0 วินาที (Base 100ms)
+                <br>🚩 <b>Siemens (S7-1200):</b> ใช้บล็อก TON โดยกำหนด PT (Preset Time) เป็น T#5s`
+            },
+            {
+                keywords: ['counter', 'cnt', 'c0', 'นับ'],
+                response: `📌 <b>คำสั่ง Counter (ตัวนับ)</b> ใช้นับจำนวนครั้งของสัญญาณ Input
+                <br>🚩 <b>Mitsubishi:</b> <div class="ladder-box">|--[ X0 ]-------( C0 K10 )--|</div> (*เมื่อ X0 ON/OFF ครบ 10 ครั้ง, Contact C0 จะทำงาน) *ใช้คำสั่ง RST C0 เพื่อรีเซ็ตค่าเป็น 0
+                <br>🚩 <b>Siemens:</b> ใช้บล็อก CTU (Count Up) ขา PV ระบุจำนวนที่ต้องการนับ`
+            },
+            {
+                keywords: ['mov', 'move', 'ย้ายข้อมูล'],
+                response: `📌 <b>คำสั่ง MOV (Move Data)</b> ใช้สำหรับย้ายหรือคัดลอกข้อมูลจากต้นทางไปปลายทาง
+                <br><b>รูปแบบ:</b> [MOV S D] S = Source (ต้นทาง) D = Destination (ปลายทาง)
+                <div class="ladder-box">|--[ M8000 ]----[ MOV K10 D0 ]--|</div> (*ย้ายค่าคงที่ 10 ไปเก็บไว้ใน Data Register D0)`
+            }
+        ];
+
+        function addMessage(content, isUser = false) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${isUser ? 'justify-end' : 'justify-start'} animate-fade-in`;
+            
+            const msg = document.createElement('div');
+            msg.className = `${isUser ? 'user-msg' : 'bot-msg'} p-4 max-w-[90%] md:max-w-[70%] text-sm leading-relaxed`;
+            msg.innerHTML = content;
+            
+            wrapper.appendChild(msg);
+            chatDisplay.appendChild(wrapper);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
+        function handleChat(text) {
+            if (!text.trim()) return;
+            
+            addMessage(text, true);
+            msgInput.value = '';
+
+            // ค้นหาคำตอบ
+            const lowerText = text.toLowerCase();
+            const match = knowledgeBase.find(item => 
+                item.keywords.some(k => lowerText.includes(k))
+            );
+
+            setTimeout(() => {
+                if (match) {
+                    addMessage(match.response);
+                } else {
+                    addMessage("ขออภัยครับ ในโหมดออฟไลน์ผมรู้จักคำสั่งพื้นฐานเท่านั้น <br>ลองพิมพ์คำว่า: <b>LD, Timer, Counter, SET</b> หรือ <b>MOV</b> ดูครับ 😊");
+                }
+            }, 500);
+        }
+
+        function sendQuick(cmd) {
+            handleChat(cmd);
+        }
+
+        function clearChat() {
+            chatDisplay.innerHTML = '';
+            addMessage("รีเซ็ตการสนทนาแล้วครับ มีอะไรให้ช่วยเกี่ยวกับ PLC อีกไหม?");
+        }
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleChat(msgInput.value);
+        });
+    </script>
+
+    <style>
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
+    </style>
+</body>
+</html>
+
